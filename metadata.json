@@ -1,5 +1,7 @@
 {
   "name": "Calculatrice Moderne & IA",
   "description": "Une calculatrice élégante avec un mode IA interactif simulant une conversation et un mode Live Voice.",
-  "requestFramePermissions": ["microphone"]
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }

@@ -1,13 +1,464 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculatrice Moderne & IA Live</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            transition: background-color 0.3s ease;
+            overflow-x: hidden;
+        }
 
+        @media (min-width: 640px) { body { padding: 2rem 1rem; } }
+
+        .glass {
+            backdrop-filter: blur(25px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .dark body { background-color: #050505; color: #e2e8f0; }
+        .dark .glass { background: rgba(15, 15, 15, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); }
+
+        .light body { background-color: #f1f5f9; color: #1e293b; }
+        .light .glass { background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(0, 0, 0, 0.05); box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.05); }
+
+        .hidden { display: none !important; }
+
+        /* Animations Live Call */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+        .ring-anim {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid #6366f1;
+            animation: pulse-ring 3s infinite;
+        }
+        .ring-2 { animation-delay: 1s; }
+        .ring-3 { animation-delay: 2s; }
+
+        @keyframes wave {
+            0%, 100% { height: 10px; }
+            50% { height: 50px; }
+        }
+        .wave-bar {
+            width: 4px;
+            background: #6366f1;
+            border-radius: 10px;
+            animation: wave 1s infinite ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-fade { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+    </style>
+</head>
+<body class="transition-colors duration-500">
+
+    <!-- Bouton Thème -->
+    <div class="fixed top-4 right-4 sm:top-6 sm:right-6 z-50">
+        <button onclick="toggleTheme()" class="p-3 rounded-2xl glass hover:scale-110 transition-all active:scale-95 shadow-lg">
+            <span id="theme-icon-dark" class="hidden dark:block">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-400"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            </span>
+            <span id="theme-icon-light" class="block dark:hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            </span>
+        </button>
+    </div>
+
+    <!-- Background Decor -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 blur-[150px] rounded-full"></div>
+    </div>
+
+    <!-- CALCULATRICE -->
+    <div id="calculator-mode" class="relative z-10 w-full max-w-md glass rounded-[2.5rem] p-6 sm:p-8 shadow-2xl animate-fade">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-zinc-500 dark:text-zinc-400 font-medium text-[10px] sm:text-xs uppercase tracking-[0.3em]">Calculatrice</h2>
+            <button onclick="switchMode('ai')" class="px-4 py-1.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-full border border-indigo-500/20 hover:bg-indigo-500/20 transition-all">
+                MODE IA
+            </button>
+        </div>
+
+        <div class="mb-8 h-28 flex flex-col justify-end items-end px-6 py-4 bg-zinc-100 dark:bg-black/40 rounded-3xl overflow-hidden border border-zinc-200 dark:border-transparent">
+            <div id="equation" class="text-zinc-400 dark:text-zinc-500 text-sm font-mono h-6"></div>
+            <div id="display" class="text-zinc-900 dark:text-white text-5xl font-bold tracking-tight truncate w-full text-right">0</div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-3 sm:gap-4">
+            <button onclick="clearDisplay()" class="h-14 sm:h-16 rounded-2xl bg-red-500/10 text-red-500 font-semibold text-xl hover:bg-red-500/20 transition-all active:scale-95">C</button>
+            <button onclick="backspace()" class="h-14 sm:h-16 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-semibold text-xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all active:scale-95">←</button>
+            <button onclick="setOperator('÷')" class="h-14 sm:h-16 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold text-xl hover:bg-indigo-500/20 transition-all active:scale-95">÷</button>
+            <button onclick="setOperator('×')" class="h-14 sm:h-16 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold text-xl hover:bg-indigo-500/20 transition-all active:scale-95">×</button>
+            
+            <button onclick="appendNumber('7')" class="h-14 sm:h-16 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-white font-semibold text-xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all active:scale-95">7</button>
+            <button onclick="appendNumber('8')" class="h-14 sm:h-16 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-white font-semibold text-xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all active:scale-95">8</button>
+            <button onclick="appendNumber('9')" class="h-14 sm:h-16 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-white font-semibold text-xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all active:scale-95">9</button>
+            <button onclick="setOperator('-')" class="h-14 sm:h-16 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold text-xl hover:bg-indigo-500/20 transition-all active:scale-95">-</button>
+            
+            <button onclick="appendNumber('4')" class="h-14 sm:h-16 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-white font-semibold text-xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all active:scale-95">4</button>
+            <button onclick="appendNumber('5')" class="h-14 sm:h-16 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-white font-semibold text-xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all active:scale-95">5</button>
+            <button onclick="appendNumber('6')" class="h-14 sm:h-16 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-white font-semibold text-xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all active:scale-95">6</button>
+            <button onclick="setOperator('+')" class="h-14 sm:h-16 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold text-xl hover:bg-indigo-500/20 transition-all active:scale-95">+</button>
+            
+            <button onclick="appendNumber('1')" class="h-14 sm:h-16 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-white font-semibold text-xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all active:scale-95">1</button>
+            <button onclick="appendNumber('2')" class="h-14 sm:h-16 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-white font-semibold text-xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all active:scale-95">2</button>
+            <button onclick="appendNumber('3')" class="h-14 sm:h-16 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-white font-semibold text-xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all active:scale-95">3</button>
+            <button onclick="calculate()" class="h-32 sm:h-36 rounded-2xl bg-indigo-600 text-white font-bold text-2xl hover:bg-indigo-500 row-span-2 shadow-lg shadow-indigo-500/30 transition-all active:scale-95">=</button>
+            
+            <button onclick="appendNumber('0')" class="h-14 sm:h-16 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-white font-semibold text-xl hover:bg-zinc-300 dark:hover:bg-zinc-700 col-span-2 transition-all active:scale-95">0</button>
+            <button onclick="appendNumber('.')" class="h-14 sm:h-16 rounded-2xl bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-white font-semibold text-xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all active:scale-95">.</button>
+        </div>
+    </div>
+
+    <!-- MODE IA CHAT -->
+    <div id="ai-mode" class="relative z-10 w-full max-w-md h-[80vh] max-h-[650px] glass rounded-[2.5rem] p-6 sm:p-8 shadow-2xl flex flex-col hidden animate-fade">
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+                </div>
+                <div>
+                    <h2 class="text-zinc-900 dark:text-white font-bold text-sm">Assistant IA</h2>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                        <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-tighter">En ligne</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="switchMode('live')" class="p-2.5 bg-indigo-500/10 text-indigo-600 rounded-xl hover:bg-indigo-500/20 transition-all" title="Appel Live">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.28-2.28a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </button>
+                <button onclick="switchMode('calculator')" class="p-2.5 bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="chat-box" class="flex-1 overflow-y-auto space-y-4 mb-6 pr-2 scroll-smooth">
+            <div class="flex justify-start">
+                <div class="max-w-[85%] p-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-2xl rounded-tl-none text-sm border border-zinc-200 dark:border-white/5 shadow-sm">
+                    Bonjour ! Je suis votre assistant. Quel est le premier nombre ?
+                </div>
+            </div>
+        </div>
+
+        <div class="relative flex gap-2">
+            <input id="chat-input" type="text" placeholder="Répondez ici..." class="flex-1 bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/10 rounded-2xl py-4 pl-6 pr-14 text-zinc-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all">
+            <button onclick="handleChat()" class="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 transition-all active:scale-90">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- MODE APPEL LIVE (GEMINI LIVE STYLE) -->
+    <div id="live-mode" class="relative z-10 w-full max-w-md h-[80vh] max-h-[650px] glass rounded-[3rem] p-8 shadow-2xl flex flex-col items-center justify-between hidden animate-fade">
+        <div class="w-full flex justify-between items-center">
+            <button onclick="switchMode('ai')" class="p-3 bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-2xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <div class="flex flex-col items-center">
+                <span class="text-xs font-bold text-indigo-500 uppercase tracking-widest">Gemini Live</span>
+                <span id="call-timer" class="text-zinc-500 text-[10px] font-mono">00:00</span>
+            </div>
+            <div class="w-11"></div>
+        </div>
+
+        <div class="relative flex items-center justify-center w-64 h-64">
+            <div class="ring-anim"></div>
+            <div class="ring-anim ring-2"></div>
+            <div class="ring-anim ring-3"></div>
+            <div class="relative z-10 w-32 h-32 bg-indigo-600 rounded-full flex items-center justify-center shadow-2xl shadow-indigo-500/40">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+            </div>
+        </div>
+
+        <div class="w-full space-y-8">
+            <div id="live-status" class="text-center">
+                <h3 class="text-xl font-bold text-zinc-900 dark:text-white mb-2">En ligne...</h3>
+                <p class="text-zinc-500 text-sm">Posez votre question à voix haute</p>
+            </div>
+
+            <div class="flex items-center justify-center gap-1 h-12">
+                <div class="wave-bar" style="animation-delay: 0.1s"></div>
+                <div class="wave-bar" style="animation-delay: 0.3s"></div>
+                <div class="wave-bar" style="animation-delay: 0.2s"></div>
+                <div class="wave-bar" style="animation-delay: 0.4s"></div>
+                <div class="wave-bar" style="animation-delay: 0.1s"></div>
+                <div class="wave-bar" style="animation-delay: 0.5s"></div>
+                <div class="wave-bar" style="animation-delay: 0.3s"></div>
+            </div>
+
+            <div class="flex justify-center gap-6">
+                <button onclick="toggleMute()" id="mute-btn" class="p-5 bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-3xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all active:scale-90">
+                    <svg id="mute-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                </button>
+                <button onclick="switchMode('calculator')" class="p-5 bg-red-500 text-white rounded-3xl hover:bg-red-600 shadow-xl shadow-red-500/30 transition-all active:scale-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="rotate-[135deg]"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.28-2.28a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </button>
+                <button class="p-5 bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-3xl opacity-30 cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18v3c0 .6.4 1 1 1h4v-3c0-.6-.4-1-1-1H3c-.6 0-1 .4-1 1z"/><path d="M10 10V7c0-.6-.4-1-1-1H7c-.6 0-1 .4-1 1v3c0 .6.4 1 1 1h2c.6 0 1-.4 1-1z"/><path d="M18 10V7c0-.6-.4-1-1-1h-2c-.6 0-1 .4-1 1v3c0 .6.4 1 1 1h2c.6 0 1-.4 1-1z"/><path d="M18 18v3c0 .6-.4 1-1 1h-4v-3c0-.6.4-1 1-1h3c.6 0 1 .4 1 1z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // THEME TOGGLE
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // SWITCH MODE
+        let timerInterval;
+        function switchMode(mode) {
+            const calc = document.getElementById('calculator-mode');
+            const ai = document.getElementById('ai-mode');
+            const live = document.getElementById('live-mode');
+            
+            calc.classList.add('hidden');
+            ai.classList.add('hidden');
+            live.classList.add('hidden');
+            
+            if (mode === 'ai') ai.classList.remove('hidden');
+            else if (mode === 'live') {
+                live.classList.remove('hidden');
+                startCall();
+            }
+            else calc.classList.remove('hidden');
+
+            if (mode !== 'live') stopCall();
+        }
+
+        // LIVE CALL LOGIC
+        let seconds = 0;
+        let isMuted = false;
+        function startCall() {
+            seconds = 0;
+            document.getElementById('call-timer').innerText = "00:00";
+            timerInterval = setInterval(() => {
+                seconds++;
+                const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const s = (seconds % 60).toString().padStart(2, '0');
+                document.getElementById('call-timer').innerText = `${m}:${s}`;
+            }, 1000);
+            
+            // Start listening automatically in Live mode
+            startListening();
+        }
+
+        function stopCall() {
+            clearInterval(timerInterval);
+            if (recognition) recognition.stop();
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const btn = document.getElementById('mute-btn');
+            const icon = document.getElementById('mute-icon');
+            if (isMuted) {
+                btn.classList.add('bg-red-500/20', 'text-red-500');
+                icon.innerHTML = '<line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="22"/>';
+            } else {
+                btn.classList.remove('bg-red-500/20', 'text-red-500');
+                icon.innerHTML = '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>';
+            }
+        }
+
+        // VOICE LOGIC
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'fr-FR';
+            recognition.onresult = (e) => {
+                const text = e.results[0][0].transcript;
+                if (document.getElementById('live-mode').classList.contains('hidden')) {
+                    document.getElementById('chat-input').value = text;
+                    handleChat();
+                } else {
+                    processLiveVoice(text);
+                }
+            };
+            recognition.onend = () => {
+                if (!document.getElementById('live-mode').classList.contains('hidden')) {
+                    recognition.start(); // Keep listening in live mode
+                }
+            };
+        }
+
+        function startListening() {
+            if (recognition) recognition.start();
+        }
+
+        function processLiveVoice(text) {
+            // Simple logic for live voice
+            const status = document.getElementById('live-status');
+            status.innerHTML = `<h3 class="text-xl font-bold text-indigo-500 mb-2">Vous avez dit...</h3><p class="text-zinc-400 text-sm">"${text}"</p>`;
+            
+            setTimeout(() => {
+                const response = "Je traite votre demande. Le résultat est en cours de calcul.";
+                speak(response);
+                status.innerHTML = `<h3 class="text-xl font-bold text-emerald-500 mb-2">Gemini répond...</h3><p class="text-zinc-400 text-sm">"${response}"</p>`;
+            }, 1000);
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'fr-FR';
+                window.speechSynthesis.speak(u);
+            }
+        }
+
+        // CALCULATRICE LOGIC
+        let currentDisplay = '0';
+        let currentEquation = '';
+        let isFinished = false;
+        const displayEl = document.getElementById('display');
+        const equationEl = document.getElementById('equation');
+
+        function updateDisplay() {
+            displayEl.innerText = currentDisplay;
+            equationEl.innerText = currentEquation;
+        }
+
+        function appendNumber(num) {
+            if (isFinished) { currentDisplay = num; isFinished = false; }
+            else { currentDisplay = currentDisplay === '0' ? num : currentDisplay + num; }
+            updateDisplay();
+        }
+
+        function setOperator(op) {
+            currentEquation = currentDisplay + ' ' + op + ' ';
+            currentDisplay = '0';
+            isFinished = false;
+            updateDisplay();
+        }
+
+        function clearDisplay() { currentDisplay = '0'; currentEquation = ''; isFinished = false; updateDisplay(); }
+        function backspace() { currentDisplay = currentDisplay.length > 1 ? currentDisplay.slice(0, -1) : '0'; updateDisplay(); }
+
+        function calculate() {
+            try {
+                const full = currentEquation + currentDisplay;
+                const tokens = full.split(' ');
+                if (tokens.length < 3) return;
+                const a = parseFloat(tokens[0]);
+                const op = tokens[1];
+                const b = parseFloat(tokens[2]);
+                let res = 0;
+                if (op === '+') res = a + b;
+                if (op === '-') res = a - b;
+                if (op === '×') res = a * b;
+                if (op === '÷') {
+                    if (b === 0) { currentDisplay = 'Erreur'; currentEquation = ''; isFinished = true; updateDisplay(); return; }
+                    res = a / b;
+                }
+                currentDisplay = res.toString();
+                currentEquation = '';
+                isFinished = true;
+                updateDisplay();
+            } catch (e) { currentDisplay = 'Erreur'; updateDisplay(); }
+        }
+
+        // CHAT LOGIC
+        let aiStep = 0;
+        let aiData = { n1: 0, op: '', n2: 0 };
+        const chatBox = document.getElementById('chat-box');
+        const chatInput = document.getElementById('chat-input');
+
+        function addMessage(text, sender) {
+            const div = document.createElement('div');
+            div.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade`;
+            div.innerHTML = `<div class="max-w-[85%] p-4 ${sender === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-none'} rounded-2xl text-sm border ${sender === 'user' ? 'border-transparent' : 'border-zinc-200 dark:border-white/5'} shadow-sm">${text}</div>`;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            if (sender === 'bot') speak(text);
+        }
+
+        function handleChat() {
+            const val = chatInput.value.trim();
+            if (!val) return;
+            addMessage(val, 'user');
+            chatInput.value = '';
+            setTimeout(() => {
+                if (aiStep === 0) {
+                    const n = parseFloat(val);
+                    if (isNaN(n)) addMessage("Ce n'est pas un nombre. Quel est le premier nombre ?", 'bot');
+                    else { aiData.n1 = n; aiStep = 1; addMessage("Quelle opération ? (+, -, *, /)", 'bot'); }
+                } else if (aiStep === 1) {
+                    const op = val.toLowerCase();
+                    if (!['+', '-', '*', '/', 'x'].includes(op)) addMessage("Opération non valide. Choisissez +, -, *, /", 'bot');
+                    else { aiData.op = op === 'x' ? '*' : op; aiStep = 2; addMessage("Quel est le deuxième nombre ?", 'bot'); }
+                } else if (aiStep === 2) {
+                    const n = parseFloat(val);
+                    if (isNaN(n)) addMessage("Ce n'est pas un nombre. Quel est le deuxième nombre ?", 'bot');
+                    else {
+                        aiData.n2 = n;
+                        let res = 0;
+                        const { n1, op, n2 } = aiData;
+                        if (op === '+') res = n1 + n2;
+                        if (op === '-') res = n1 - n2;
+                        if (op === '*') res = n1 * n2;
+                        if (op === '/') res = n2 === 0 ? "Erreur" : n1 / n2;
+                        addMessage(`Le résultat de ${n1} ${op === '*' ? '×' : op} ${n2} est ${res}`, 'bot');
+                        aiStep = 3;
+                        setTimeout(() => addMessage("Voulez-vous recommencer ? (Oui)", 'bot'), 500);
+                    }
+                } else if (aiStep === 3) {
+                    if (val.toLowerCase().includes('oui')) { aiStep = 0; addMessage("C'est reparti ! Quel est le premier nombre ?", 'bot'); }
+                    else addMessage("D'accord, je suis là si besoin !", 'bot');
+                }
+            }, 600);
+        }
+
+        chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleChat(); });
+
+        // Initial Theme
+        if (localStorage.getItem('theme') === 'light') {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+        }
+    </script>
+</body>
+</html>
